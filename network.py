@@ -8,13 +8,11 @@ import torch.nn.functional as F
 class NeuralNetwork(torch.nn.Module):
     def __init__(self, input_layer, output_layer): 
         super(NeuralNetwork, self).__init__()
-        self.fc1 = torch.nn.Linear(input_layer, 32)
-        self.fc2 = torch.nn.Linear(32, 32)
-        self.fc3 = torch.nn.Linear(32, output_layer)
+        self.fc1 = torch.nn.Linear(input_layer, 16)
+        self.fc3 = torch.nn.Linear(16, output_layer)
     
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
         x = self.fc3(x)
         return x
 
@@ -62,3 +60,25 @@ class Memory():
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+    def save_checkpoint(self, filepath):
+        checkpoint = {
+            'policy_model_state_dict': self.policy_model.state_dict(),
+            'target_model_state_dict': self.target_model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'memory': list(self.memory),
+            'gamma': self.gamma,
+            'learning_rate': self.learning_rate
+        }
+        torch.save(checkpoint, filepath)
+        print(f"Checkpoint saved to {filepath}")
+
+    def load_checkpoint(self, filepath):
+        checkpoint = torch.load(filepath)
+        self.policy_model.load_state_dict(checkpoint['policy_model_state_dict'])
+        self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.memory = deque(checkpoint['memory'], maxlen=BUFFER_SIZE)
+        self.gamma = checkpoint['gamma']
+        self.learning_rate = checkpoint['learning_rate']
+        print(f"Checkpoint loaded from {filepath}")

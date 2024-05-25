@@ -180,13 +180,34 @@ class Tetris():
                     self.list_of_tetrominos[row][j]=0
                 self.score+=self.score_add
         
-        reward = lines_cleared * 100
+        
         
         if self.tetromino.add_to_map:
             if self.game_over():
                 reward = -500
         
-                
+        if lines_cleared ==1:
+            reward = 100
+        elif lines_cleared ==2:
+            reward = 200        
+        elif lines_cleared ==3:
+            reward = 300    
+        elif lines_cleared ==4:
+            reward = 800
+
+        if get_aggregate_height(self.list_of_tetrominos) > 100:
+            reward -= 0.10 * get_aggregate_height(self.list_of_tetrominos)
+        elif get_aggregate_height(self.list_of_tetrominos) <=100:
+            reward += 0.10 * get_aggregate_height(self.list_of_tetrominos)
+        if get_holes(self.list_of_tetrominos) > 3:
+            reward -= 1 * get_holes(self.list_of_tetrominos)
+        elif get_holes(self.list_of_tetrominos) <= 3:
+            reward += 3 * get_holes(self.list_of_tetrominos)
+        if get_bumpiness(self.list_of_tetrominos) > 6:
+            reward -= 0.20 * get_bumpiness(self.list_of_tetrominos)
+        elif get_bumpiness(self.list_of_tetrominos) <=6:
+            reward +=  0.20 * get_bumpiness(self.list_of_tetrominos)
+
         return reward, self.done, self.score
     
 def get_reward(weights, new_state):
