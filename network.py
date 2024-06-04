@@ -8,12 +8,22 @@ import torch.nn.functional as F
 class NeuralNetwork(torch.nn.Module):
     def __init__(self, input_layer, output_layer): 
         super(NeuralNetwork, self).__init__()
-        self.fc1 = torch.nn.Linear(input_layer, 16)
-        self.fc3 = torch.nn.Linear(16, output_layer)
+        self.fc1 = torch.nn.Linear(input_layer, 128)
+        self.fc2 = torch.nn.Linear(128, 128)
+        self.fc3 = torch.nn.Linear(128, 128)
+        self.fc4 = torch.nn.Linear(128, 128)
+        self.fc5 = torch.nn.Linear(128, 128)
+        self.fc6 = torch.nn.Linear(128, 128)
+        self.fc7 = torch.nn.Linear(128, output_layer)
     
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        x = F.relu(self.fc6(x))
+        x = self.fc7(x)
         return x
 
 BUFFER_SIZE = 50_000
@@ -47,20 +57,30 @@ class Memory():
         new_states = torch.tensor(new_states, dtype=torch.float32)
         dones = torch.tensor(dones, dtype=torch.bool)
 
-        q_values_policy = self.policy_model(states)
-        q_values_target = self.target_model(new_states)
+       
+        
+        q_values_policy = self.policy_model(states).squeeze()
+        q_values_target = self.target_model(new_states).squeeze().detach()
 
         targets_values = q_values_policy.clone().detach()
 
+
         for i in range(len(sample)):
-            next_q_value = q_values_target[0]
-            targets_values = rewards[i] + self.gamma * next_q_value * (~dones[i])
-            
+            if dones[i]:
+                targets_values[i] = rewards[i]
+            else:
+                targets_values[i] = rewards[i] + self.gamma * q_values_target[i]
+        
+        q_values_policy = q_values_policy.view(-1)
+        targets_values = targets_values.view(-1)
+
         loss = self.loss_function(q_values_policy, targets_values)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        self.loss = loss.item()
 
+        
     def save_checkpoint(self, filepath):
         checkpoint = {
             'policy_model_state_dict': self.policy_model.state_dict(),

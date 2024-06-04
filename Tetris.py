@@ -1,7 +1,7 @@
 from game_settings import *
 from Tetromino import Tetromino
 import json
-
+import copy
 
 class Tetris():
 
@@ -184,34 +184,36 @@ class Tetris():
         
         if self.tetromino.add_to_map:
             if self.game_over():
-                reward = -500
+                reward = -2500
         
-        if lines_cleared ==1:
-            reward = 100
-        elif lines_cleared ==2:
-            reward = 200        
-        elif lines_cleared ==3:
-            reward = 300    
-        elif lines_cleared ==4:
+        if lines_cleared == 4:
             reward = 800
+        else:
+            reward = 100 * lines_cleared
 
-        if get_aggregate_height(self.list_of_tetrominos) > 100:
-            reward -= 0.10 * get_aggregate_height(self.list_of_tetrominos)
-        elif get_aggregate_height(self.list_of_tetrominos) <=100:
-            reward += 0.10 * get_aggregate_height(self.list_of_tetrominos)
-        if get_holes(self.list_of_tetrominos) > 3:
+        for item in get_list_of_column_size(self.list_of_tetrominos):
+            if item >5:
+                reward -= (item - 5)
+
+
+        if get_holes(self.list_of_tetrominos) == 0:
+            reward += 10
+        else:
             reward -= 1 * get_holes(self.list_of_tetrominos)
-        elif get_holes(self.list_of_tetrominos) <= 3:
-            reward += 3 * get_holes(self.list_of_tetrominos)
-        if get_bumpiness(self.list_of_tetrominos) > 6:
-            reward -= 0.20 * get_bumpiness(self.list_of_tetrominos)
-        elif get_bumpiness(self.list_of_tetrominos) <=6:
-            reward +=  0.20 * get_bumpiness(self.list_of_tetrominos)
+        if get_bumpiness(self.list_of_tetrominos) <=2:
+            reward += 5
+
+
 
         return reward, self.done, self.score
-    
+
+    def copy(self):
+        return copy.deepcopy(self.list_of_tetrominos)
+
+
 def get_reward(weights, new_state):
     return weights[0] * new_state[0] + weights[1] * new_state[1] +weights[2] * new_state[2] + weights[3] * new_state[3] 
+
 
 def get_holes( board):
     holes = 0
@@ -278,6 +280,11 @@ def get_bumpiness(board):
 
     return bumpiness
     
-    
+def get_full_lines(board):
+    full_lines =0
+    for row in board:
+        if all(cell != 0 for cell in row):
+            full_lines+=1
+    return full_lines
 
     

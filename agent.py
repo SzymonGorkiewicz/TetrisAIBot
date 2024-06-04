@@ -6,27 +6,26 @@ from network import NeuralNetwork, Memory
 import itertools
 import matplotlib.pyplot as plt
 from game_settings import *
-import time
 import copy
 from Tetris import get_holes, get_bumpiness, get_aggregate_height, get_complete_lines, get_reward, get_list_of_column_size
 from datetime import datetime
 
-LIST_OF_ACTIONS = [(0, 0), (0, 1), (0, 2), (0, 3), 
-                           (1, 0), (1, 1), (1, 2), (1, 3), 
-                           (2, 0), (2, 1), (2, 2), (2, 3), 
-                           (3, 0), (3, 1), (3, 2), (3, 3), 
-                           (4, 0), (4, 1), (4, 2), (4, 3), 
-                           (5, 0), (5, 1), (5, 2), (5, 3), 
-                           (6, 0), (6, 1), (6, 2), (6, 3), 
-                           (7, 0), (7, 1), (7, 2), (7, 3), 
-                           (8, 0), (8, 1), (8, 2), (8, 3), 
-                           (9, 0), (9, 1), (9, 2), (9, 3)]
+LIST_OF_ACTIONS = [     (6, 0), (6, 1), (6, 2), (6, 3), 
+                        (0, 0), (0, 1), (0, 2), (0, 3), 
+                        (1, 0), (1, 1), (1, 2), (1, 3), 
+                        (2, 0), (2, 1), (2, 2), (2, 3), 
+                        (3, 0), (3, 1), (3, 2), (3, 3), 
+                        (5, 0), (5, 1), (5, 2), (5, 3),
+                        (4, 0), (4, 1), (4, 2), (4, 3),  
+                        (7, 0), (7, 1), (7, 2), (7, 3), 
+                        (8, 0), (8, 1), (8, 2), (8, 3), 
+                        (9, 0), (9, 1), (9, 2), (9, 3)]
 class Agent():
 
     def __init__(self, game):
         self.epsilon = 1.0
-        self.gamma = 0.95
-        self.learning_rate = 0.01
+        self.gamma = 0.98
+        self.learning_rate = 0.001
         self.EPISODES = 1000
         self.game = game
         self.ACTIONS = {"rotate": 0,
@@ -34,8 +33,8 @@ class Agent():
                         "right": 2,
                         "down": 3,
                         "hold": 4}
-        self.policy_net = NeuralNetwork(4,1)
-        self.target_net = NeuralNetwork(4,1)
+        self.policy_net = NeuralNetwork(14,1)
+        self.target_net = NeuralNetwork(14,1)
         self.memory = Memory(self.policy_net, self.target_net, self.gamma,self.learning_rate)
 
     def make_action2(self,action_number):
@@ -61,96 +60,31 @@ class Agent():
         self.game.tetris.tetromino.move_down()
 
 
-    def make_action(self,action_number):
-        if action_number == 0:
-            self.game.tetris.tetromino.rotate()
-        elif action_number == 1:    
-            self.game.tetris.tetromino.move(direction="left")
-        elif action_number == 2:
-            self.game.tetris.tetromino.move(direction="right")
-        elif action_number == 3:
-            self.game.tetris.tetromino.move_down()
-            
-        elif action_number == 4:
-            pass
-
     def get_state2(self, board):
         aggr_height = get_aggregate_height(board)
         complete_lines =get_complete_lines(board)
         holes = get_holes(board)
         bumpiness = get_bumpiness(board)
         
+        getHeight = get_list_of_column_size(board)
 
-        state =[float(aggr_height),
-                float(complete_lines),
-                float(holes),
-                float(bumpiness)]
-        #print(state)
+        state = []
+        state = state + getHeight
+        state.append(float(aggr_height))
+        state.append(float(complete_lines))
+        state.append(float(holes))
+        state.append(float(bumpiness))
+
+        
         return np.array(state, dtype=np.float32)
     
-    def get_state(self):
-        #blocks_position = tf.keras.layers.Flatten(self.game.tetris.list_of_tetrominos)
-        #block_position1d = [item for sublist in self.game.tetris.list_of_tetrominos for item in sublist]
-        block_position1d = [1 if item != 0 else 0 for sublist in self.game.tetris.list_of_tetrominos for item in sublist]
-        
-
-
-        listOfBlocks = {}
-        for tetrominoX in self.game.tetris.list_of_tetrominos:
-            for singleTetromino in tetrominoX:
-                if singleTetromino != 0:
-                    tempX = singleTetromino.position.x
-                    tempY = singleTetromino.position.y
-                    if(tempX not in listOfBlocks):
-                        listOfBlocks[tempX] = []
-                    listOfBlocks[tempX] += [tempY]
-
-        dictionaryOfColHeight = {}
-        listOfMinColHeight = []
-        for key,value in listOfBlocks.items():
-            dictionaryOfColHeight[key] = min(value)
-
-        for temp in range(0,10):
-            if temp in dictionaryOfColHeight:
-                listOfMinColHeight.append(dictionaryOfColHeight[float(temp)])
-            else:
-                listOfMinColHeight.append(20.0)
-        
-
-
-        state = [
-            # position of the tetromino blocks
-            self.game.tetris.tetromino.blocks[0].position.x,
-            self.game.tetris.tetromino.blocks[1].position.x,
-            self.game.tetris.tetromino.blocks[2].position.x,
-            self.game.tetris.tetromino.blocks[3].position.x,
-            self.game.tetris.tetromino.blocks[0].position.y,
-            self.game.tetris.tetromino.blocks[1].position.y,
-            self.game.tetris.tetromino.blocks[2].position.y,
-            self.game.tetris.tetromino.blocks[3].position.y,
-            # game board
-            #blocks_position
-            # game speed
-            #speed = 100
-
-
-
-        ]
-        state = state + listOfMinColHeight
-        return np.array(state, dtype=np.float64)
     
-    def act(self, actionNumber):
-        if random.random() <= self.epsilon:
-            print("random")
-            return random.randint(0,39)  
-        return actionNumber
-
+    
+ 
     def simulate_move(self, action_number, board, tetrominoBlocks):
         position, rotation = LIST_OF_ACTIONS[action_number]
 
-        # for blocks in tetrominoBlocks:
-        #     print(blocks.x,blocks.y )
-
+        
         for temp in range(rotation):
             self.rotate(board,tetrominoBlocks)
         
@@ -212,7 +146,7 @@ class Agent():
                     pass
 
     def simulate_aciton(self):
-        best_score = -5000
+        best_score = -10_000
         best_action = None
         
         listOfBlocks= []
@@ -220,7 +154,7 @@ class Agent():
             copiedBlock= copy.deepcopy(block.position)
             listOfBlocks.append(copiedBlock)
 
-        copied_2d_list = [row[::] for row in self.game.tetris.list_of_tetrominos] #copy.deepcopy(self.game.tetris.list_of_tetrominos)#[row[::-1] for row in game.tetris.list_of_tetrominos]
+        copied_2d_list =[row[::] for row in self.game.tetris.list_of_tetrominos] #self.game.tetris.copy() # #copy.deepcopy(self.game.tetris.list_of_tetrominos)#[row[::-1] for row in game.tetris.list_of_tetrominos]
 
         for action_number in range(len(LIST_OF_ACTIONS)):
             simulated_list = [row[::] for row in copied_2d_list]
@@ -257,19 +191,20 @@ def train():
         games = 0
         total_score = 0
         save_model = 0
-        # for _ in range(100):
+        # for _ in range(500):
 
-        #     game.run()
+        #     #game.run()
         #     action = agent.simulate_aciton()
+        #     action2 = agent.act(action)
         #     #epsilonAction = agent.act(action)
         #     state = agent.get_state2(game.tetris.list_of_tetrominos)
-        #     agent.make_action2(action)
-            
+        #     agent.make_action2(action2)
+        #     game.run()
         #     #print(state)
         #     #print(state)
         #     #action = agent.act(state=state)
             
-
+            
         #     #reward, done, score = game.tetris.check_for_reward()
         #     reward, done, score = game.tetris.check_for_reward()
         #     #print(game.tetris.get_aggregate_height())
@@ -283,7 +218,7 @@ def train():
         #         print("Epoch: ", _)
         
         # game.restart()
-        agent.memory.load_checkpoint("savedNN/model_2024-05-24 22-33-23")
+        agent.memory.load_checkpoint("savedNN/TrainedModel12000    2024-05-29 18-11-44")
         for step in itertools.count():
             if len(agent.memory.memory) < MIN_MEMORY_SIZE:
                 return
@@ -294,24 +229,24 @@ def train():
             state = agent.get_state2(game.tetris.list_of_tetrominos)
             
             action = agent.simulate_aciton()
-            #epsilonAction = agent.act(action)
+            
             agent.make_action2(action)
            
-            #reward, done, score = game.tetris.check_for_reward()
+            
             
             reward, done, score = game.tetris.check_for_reward()
             
             
             
             new_state = agent.get_state2(game.tetris.list_of_tetrominos)
-            #reward = get_reward(WEIGHTS, new_state)
             
-            if score > game.tetris.highscore:
-                reward += 1000
+            
+            
             if done:
-                reward = -100
-            # new_state = agent.get_state()
-            print("Reward: ", reward)
+                if score > game.tetris.highscore:
+                    reward += 5000
+                reward = -2500
+            
         
             agent.memory.update_memory(state,action,reward,new_state,done)
             
@@ -333,13 +268,15 @@ def train():
                 plt_average_score.append(total_score/games)
                 plt_loss.append(agent.memory.loss)
 
-            if save_model % 1000 == 0 and save_model !=0:
+            if save_model % 100 == 0 and save_model !=0:
                 now = datetime.now()
                 date_time_str = now.strftime("%Y-%m-%d %H-%M-%S")
-                agent.memory.save_checkpoint(f"savedNN/model_{save_model}")
+                agent.memory.save_checkpoint(f"savedNN/TrainedModel{save_model+10900}    {date_time_str}")
                 save_model +=1
             
-            if games >= 22000:
+            
+
+            if games >= 2000:
                 make_plot(plt_scores,games,'Score')
                 make_plot(plt_average_score,games,'Average Score')
                 make_plot(plt_loss,games,'Loss')
@@ -365,25 +302,5 @@ if __name__=="__main__":
     game = Game()
     agent = Agent(game)
     train()
-        # game.run()
-        # print(get_list_of_column_size(game.tetris.list_of_tetrominos))
-    # while True:
-    #     game.run()
-
-    #     copiedBlocks= []
-    #     for block in game.tetris.tetromino.blocks:
-    #         copiedBlock= copy.deepcopy(block.position)
-    #         copiedBlocks.append(copiedBlock)
-    #     copied_2d_list = [row[::-1] for row in game.tetris.list_of_tetrominos]
-    #     for temp in range(40):
-    #         agent.simulate_move(temp,copied_2d_list,copiedBlocks)
-
-        #agent.simulate_move(6,game.tetris.list_of_tetrominos,game.tetris.tetromino.blocks)
-        #game.run()
-# while True:
-#     game.run()
-#     #agent.make_action2(6)
-#     #pg.time.wait(5000)
-#     #break
     
             

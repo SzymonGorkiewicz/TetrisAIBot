@@ -62,10 +62,7 @@ class Game:
         self.check_events()
         self.draw()
         self.update()
-        #print(self.tetris.get_bumpiness())
-        #print(self.tetris.get_list_of_column_size())
-        #print(self.tetris.get_complete_lines())
-        #print(self.tetris.get_holes())
+     
 
 
 
