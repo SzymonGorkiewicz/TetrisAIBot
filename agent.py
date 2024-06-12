@@ -74,7 +74,7 @@ class Agent():
         state.append(float(complete_lines))
         state.append(float(holes))
         state.append(float(bumpiness))
-
+        
         
         return np.array(state, dtype=np.float32)
     
@@ -193,13 +193,13 @@ def train():
         save_model = 0
         # for _ in range(500):
 
-        #     #game.run()
+        #     game.run()
         #     action = agent.simulate_aciton()
-        #     action2 = agent.act(action)
+        #     #action2 = agent.act(action)
         #     #epsilonAction = agent.act(action)
         #     state = agent.get_state2(game.tetris.list_of_tetrominos)
-        #     agent.make_action2(action2)
-        #     game.run()
+        #     agent.make_action2(action)
+            
         #     #print(state)
         #     #print(state)
         #     #action = agent.act(state=state)
@@ -218,7 +218,7 @@ def train():
         #         print("Epoch: ", _)
         
         # game.restart()
-        agent.memory.load_checkpoint("savedNN/TrainedModel12000    2024-05-29 18-11-44")
+        agent.memory.load_checkpoint("savedNN/GoodModel")
         for step in itertools.count():
             if len(agent.memory.memory) < MIN_MEMORY_SIZE:
                 return
@@ -271,7 +271,7 @@ def train():
             if save_model % 100 == 0 and save_model !=0:
                 now = datetime.now()
                 date_time_str = now.strftime("%Y-%m-%d %H-%M-%S")
-                agent.memory.save_checkpoint(f"savedNN/TrainedModel{save_model+10900}    {date_time_str}")
+                agent.memory.save_checkpoint(f"savedNN/TrainedModel{save_model+6000}    {date_time_str}")
                 save_model +=1
             
             
